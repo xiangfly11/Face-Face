@@ -12,6 +12,7 @@ import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -66,15 +67,34 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         if(requestCode==PICK_CODE){
             if(intent!=null){
                 Uri uri=intent.getData();
+
+                //System.out.println("the uri is"+uri);
+
                 Cursor cursor=getContentResolver().query(uri, null, null, null, null);
+                //move the cursor to first row, and return false if the cursor is empty
                 cursor.moveToFirst();
 
+                //MediaStore.Images.ImageColumns.DATA is a data stream,and this data stream
+                //is column name
+                //Returns the zero-based index for the given column name,
+                //or -1 if the column doesn't exist.
                 int idx=cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+
+                //Returns the value of the requested column as a String
+                //mCurrentPhotoStr get the directory of the selected picture
                 mCurrentPhotoStr=cursor.getString(idx);
+
+                //String info=(String)mCurrentPhotoStr;
+                //Log.e("TAG",mCurrentPhotoStr);
+
+                //Closes the Cursor, releasing all of its resources and
+                //making it completely invalid
                 cursor.close();
+
 
                 resizePhoto();
 
+                //set a new image in ImageView
                 mPhoto.setImageBitmap(mPhotoImg);
                 mTip.setText("Click Detect ==>");
             }
@@ -84,15 +104,25 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     }
 
     private void resizePhoto() {
+
+        //get Options object,since bitmap has private constructor
+        //so we cannot get bitmap directly
         BitmapFactory.Options options=new BitmapFactory.Options();
+
+        //the bitmap will not completely decode by BitmapFactory.decodeFile later,
+        //if inJustDecodeBounds set as true
         options.inJustDecodeBounds=true;
 
+        //get bitmap by the directory which store in mCurrentPhotoStr
         BitmapFactory.decodeFile(mCurrentPhotoStr,options);
 
+        //get the ratio
         double ratio=Math.max(options.outWidth*1.0d/1024f,options.outHeight*1.0d/1024f);
 
         options.inSampleSize=(int) Math.ceil(ratio);
         options.inJustDecodeBounds=false;
+
+        //initialize mPhotoImage which is a Bitmap object and assign complete data
         mPhotoImg=BitmapFactory.decodeFile(mCurrentPhotoStr,options);
     }
 
@@ -246,13 +276,20 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     @Override
     public void onClick(View view) {
         switch (view.getId()){
+                //if id_getImage is clicked
                 case R.id.id_getImage:
+                    //create a intent and Pick an item from the data, returning what was selected
                     Intent intent=new Intent(Intent.ACTION_PICK);
+                    //just select any data is image
                     intent.setType("image/*");
+                    //start an activity and when it ends, it return selected data by intent
+                    //PICK_CODE is any int number
                     startActivityForResult(intent,PICK_CODE);
                     break;
+
                 case R.id.id_detect:
 
+                    //set frame layout as visible
                     mWaiting.setVisibility(View.VISIBLE);
 
                     if(mCurrentPhotoStr!=null&&!mCurrentPhotoStr.trim().equals("")){
